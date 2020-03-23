@@ -71,6 +71,12 @@ console.log(current_url.origin)
 let current_index = 0
 let queryResults = []
 
+let newDiv = document.createElement("div");
+newDiv.setAttribute("id","vidscan");
+
+let header = document.createElement("h4");
+header.innerHTML="Video Scanner: ";
+
 let searchButton = document.createElement("BUTTON")
 searchButton.id = "vidscan-search-button"
 searchButton.innerHTML = "Search"
@@ -84,11 +90,14 @@ nextButton.onclick = onNext
 let searchInput = document.createElement("INPUT")
 searchInput.id = "vidscan-search-input"
 
+newDiv.appendChild(header);
+newDiv.appendChild(searchInput);
+newDiv.appendChild(nextButton);
+newDiv.appendChild(searchButton);
+
 $(document).ready(function(){
-	let insertionElement = $("h1")
-	insertionElement.insertBefore(searchInput)
-	insertionElement.insertBefore(searchButton)
-	insertionElement.insertBefore(nextButton)
+	let primaryInner = document.getElementById("info");
+	primaryInner.appendChild(newDiv);
 	// let profileIcon = insertionElement.$("ytd-topbar-menu-button-renderer")
 	// console.log("LENGTH:" + profileIcon.length)
 });
