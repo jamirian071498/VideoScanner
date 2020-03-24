@@ -22,6 +22,7 @@
 	"permissions": [
 		"activeTab",
 		"https://ivz8pi8qv1.execute-api.us-west-2.amazonaws.com/prod*",
-		"tabs"
+		"tabs",
+		"storage"
 	]
 }
