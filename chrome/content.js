@@ -5,35 +5,59 @@ var current_url = new URL(document.URL)
 var currentIndex = 0
 var timestamps = []
 
+
+var darkTheme = $("html").get(0).hasAttribute("dark")
+
+
 var header = document.createElement("h2");
-header.style.color = "white";
+header.style.color = darkTheme ? "white" : "black";
 header.innerHTML = "Video Scanner: ";
+
 
 var searchButton = document.createElement("BUTTON")
 searchButton.id = "vidscan-search-button"
 searchButton.innerHTML = "Search"
 searchButton.onclick = onSearch
+searchButton.style.color = darkTheme ? "white" : "#909090";
+searchButton.style.background = darkTheme ? "#303030" : "white";
+searchButton.style.border = "#303030"
 
 var prevButton = document.createElement("BUTTON")
 prevButton.id = "vidscan-prev-button"
 prevButton.innerHTML = "<"
 prevButton.onclick = onPrev
+prevButton.style.color = darkTheme ? "white" : "#909090";
+prevButton.style.background = darkTheme ? "#303030" : "white";
+prevButton.style.border = "none"
+prevButton.style.marginLeft = "2px"
+prevButton.style.marginRight = "2px"
+
 
 var nextButton = document.createElement("BUTTON")
 nextButton.id = "vidscan-next-button"
 nextButton.innerHTML = ">"
 nextButton.onclick = onNext
+nextButton.style.color = darkTheme ? "white" : "#909090";
+nextButton.style.background = darkTheme ? "#303030" : "white";
+nextButton.style.border = "none"
+
+
 
 var searchInput = document.createElement("INPUT")
 searchInput.id = "vidscan-search-input"
+searchInput.style.color = darkTheme ? "white" : "#909090";
+searchInput.style.background = darkTheme ? "black" : "white";
+searchInput.style.border = "#303030";
+
 
 var newDiv = document.createElement("div");
 newDiv.setAttribute("id","vidscan");
 newDiv.appendChild(header);
 newDiv.appendChild(searchInput);
+newDiv.appendChild(searchButton);
 newDiv.appendChild(prevButton);
 newDiv.appendChild(nextButton);
-newDiv.appendChild(searchButton);
+
 
 var primaryInner = null;
 
