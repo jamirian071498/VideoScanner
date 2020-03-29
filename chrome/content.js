@@ -1,24 +1,15 @@
 import $ from "jquery";
 import "regenerator-runtime/runtime.js";
 
-var current_url = new URL(document.URL)
+var current_url = null
+var toTheRight = null
 
 var state = {
 	times: [],
 	currentInputVal: ""
 }
 
-// var port = chrome.runtime.connect();
-
-// window.addEventListener("message", function(event) {
-//   if (event.source != window)
-//     return;
-
-//   if (event.data.type && (event.data.type == "FROM_PAGE")) {
-//     console.log("Content script received: " + event.data.text);
-//     port.postMessage(event.data.text);
-//   }
-// }, false);
+embed(runEmbedded);
 
 var darkTheme = $("html").get(0).hasAttribute("dark")
 
@@ -53,6 +44,17 @@ newDiv.appendChild(nextButton);
 
 var primaryInner = null;
 
+window.addEventListener("message", function(event) {
+	if (event.source != window)
+		return;
+
+	if ("current_time" in event.data) {
+		console.log("Extension received: " + event.data.current_time)
+		let next_time = seekNext(event.data.current_time)
+		window.postMessage({time: next_time}, "*");
+	}
+}, false);
+
 
 function setColors() {
 	header.style.color = darkTheme ? "white" : "black";
@@ -83,27 +85,32 @@ function completeRequest(results) {
 }
 
 function logTimestamps(results) {
-	let timestamps = []
-
-	results.forEach(result => {
-		let minutes = Math.floor(result/60)
-		let seconds = Math.floor(result%60)
-
-		if (seconds < 10) {
-			seconds = "0" + seconds
-		}
-
-		timestamps.push(minutes + ":" + seconds)
-	})
-
-	timestamps.forEach(timestamp => {
-		console.log(timestamp)
+	results.forEach(time => {
+		time = secondsToTimestamp(time)
+		console.log(time)
 	})
 
 	console.log('\n')
 }
 
-async function onSearch(right) {
+function secondsToTimestamp(seconds) {
+	let timestamp = (seconds%60) >= 10 ? Math.floor(seconds%60).toString() : "0" + Math.floor(seconds%60).toString()
+	let minutes = Math.floor(seconds/60)
+	let hours = Math.floor(seconds/3600)
+
+	if (minutes > 0) {
+		timestamp = (minutes >= 10 ? minutes.toString() : "0" + minutes.toString()) + ":" + timestamp
+	}
+
+	if (hours > 0) {
+		timestamp = (hours >= 10 ? hours.toString() : "0" + hours.toString()) + ":" + timestamp
+	}
+
+	return timestamp
+}
+
+async function onSearch() {
+	current_url = new URL(document.URL)
 	let newInputVal = searchInput.value
 
 	if (newInputVal === "") {
@@ -112,36 +119,21 @@ async function onSearch(right) {
 		return
 	}
 
-	if (state.currentInputVal !== newInputVal) {
+	if (state.currentInputVal !== newInputVal || state.times.length === 0) {
 		clearState()
 		state.currentInputVal = newInputVal;
 		await getCaptionData()
 		saveState()
-	} else {
-		if (state.times.length === 0) {
-			await getCaptionData()
-			saveState()
-		}
 	}
 
 	if (state.times.length === 0) {
 		return;
 	}
 
-	let current_time = convertToSeconds($("span.ytp-time-current")[0].innerHTML)
-	let next_time = seekNext(right, current_time)
-	let next_url = current_url.origin + current_url.pathname + 
-	"?v=" + current_url.searchParams.get("v") + 
-	"&t=" + next_time + "s";
-
-	current_url = new URL(next_url)
-	
-	chrome.runtime.sendMessage({new_url: next_url, key: _config.message.key}, function(response) {
-		console.log(response.status);
-	});
+	window.postMessage({get_current: "gimme current time"})
 }
 
-function convertToSeconds(time) {
+function timestampToSeconds(time) {
 	let colonIndex = time.indexOf(":")
 	let secondColonIndex = time.lastIndexOf(":")
 
@@ -154,33 +146,89 @@ function convertToSeconds(time) {
 	parseInt(time.substring(secondColonIndex + 1))
 }
 
-// Optimize with binary search
-function seekNext(right, current_time) {
-	//let middle = state.times[Math.floor((right - left)/2)]
+function seekNext(current) {
+	let length = state.times.length
 
-	if (right) {
-		if (current_time > state.times[state.times.length - 1]) return state.times[0]
+    if (length === 1) return state.times[0]
+    
+    if (length === 2) {
+    	if ((toTheRight && (current >= state.times[0] && current < state.times[1])) || 
+    		(!toTheRight && (current < state.times[0] + 2 || current >= state.times[1] + 2))) {
+            return state.times[1]
+        } else {
+            return state.times[0]
+        }
+    }
+        
+    if (current >= state.times[length - 1]) {
+    	if (toTheRight) {
+    		return state.times[0]
+    	} else {
+        	if (current >= state.times[length - 1] + 2) {
+                return state.times[length - 1]
+        	} else {
+        		return state.times[length - 2]
+        	}
+        }
+    }
 
-		for (let i = 0; i < state.times.length; i++) {
-			if (state.times[i] > current_time) return state.times[i]
+    if (toTheRight) {
+    	if (current < state.times[0]) {
+    		return state.times[0]
+    	}
+    } else {
+    	if (current < state.times[0] + 2) {
+    		return state.times[length - 1]
+    	}
+    }
+        
+    if (toTheRight) {
+        return state.times[bSearchRight(current, 0, length)]
+    }
+    
+    return state.times[bSearchLeft(current, 0, length)]
+}
+
+function bSearchRight(current, left, right) {
+	if (left === right - 1) {
+        return right
+	}
+    
+    let middle = left + Math.floor((right - left)/2)
+    
+    if (current < state.times[middle]) {
+        return bSearchRight(current, left, middle)
+    }
+    
+    return bSearchRight(current, middle, right)
+}
+
+function bSearchLeft(current, left, right) {
+	if (left === right - 1) {
+		if (current >= state.times[left] + 2) {
+            return left
 		}
+
+        return left - 1
 	}
-
-	if (current_time < state.times[0]) return state.times[state.times.length - 1]
-
-	for (let i = 0; i < state.times.length; i++) {
-		if (state.times[i] > current_time) return state.times[i - 1]
-	}
-
-	console.log('hit')
+    
+    let middle = left + Math.floor((right - left)/2)
+    
+    if (current < state.times[middle]) {
+        return bSearchLeft(current, left, middle)
+    }
+    
+    return bSearchLeft(current, middle, right)
 }
 
 function onLeftClick() {
-	onSearch(false)
+	toTheRight = false
+	onSearch()
 }
 
 function onRightClick() {
-	onSearch(true)
+	toTheRight = true
+	onSearch()
 }
 
 function clearState() {
@@ -218,24 +266,32 @@ async function getCaptionData() {
 }
 
 function saveState() {
-	chrome.storage.sync.set({"currentState": state}, function() {
-		console.log("current state set");
-    });
-
+	chrome.storage.sync.set({"currentState": state});
     console.log(state)
 }
 
-// function embedScript() {
-// 	let script = document.createElement('script');
-// 	script.src = chrome.runtime.getURL('content.js');
+function runEmbedded() {
+	window.addEventListener("message", function(event) {
+		if (event.source != window)
+			return;
 
-// 	document.getElementsByTagName("body")[0].append(script);
+		if ("time" in event.data) {
+			console.log("Webpage received: " + event.data.time)
+			let player = document.getElementById('movie_player')
+			player.seekTo(event.data.time)
+		} else if ("get_current" in event.data) {
+			console.log("Webpage received: " + event.data.get_current)
+			let player = document.getElementById('movie_player')
+			window.postMessage({current_time: player.getCurrentTime()}, "*");
+		}
+	}, false);
+}
 
-// 	// document.getElementById("theButton").addEventListener("click",
-//  //    function() {
-// 	//   window.postMessage({ type: "FROM_PAGE", text: "Hello from the webpage!" }, "*");
-// 	// }, false);
-// }
+function embed(fn) {
+    const script = document.createElement("script");
+    script.text = `(${fn.toString()})();`;
+    document.documentElement.appendChild(script);
+}
 
 function main() {
 	$("body").on('DOMSubtreeModified', "ytd-popup-container", function() {
@@ -258,6 +314,8 @@ function main() {
 		}
 	});
 
+	current_url = new URL(document.URL)
+
 	chrome.storage.sync.get("currentState", function(result) {
 		if (typeof result.currentState === typeof undefined || 
 			typeof result.currentState.currentInputVal === typeof undefined) {
@@ -271,9 +329,6 @@ function main() {
 
 	primaryInner = document.getElementById("info");
 	primaryInner.appendChild(newDiv);
-
-	// let player = document.getElementById('movie_player')
-	// embedScript()
 }
 
 $(document).ready(function() {

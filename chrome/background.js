@@ -5,9 +5,7 @@ chrome.runtime.onMessage.addListener(
 				sendResponse({status: "failure"})
 			}
 
-			chrome.tabs.query({currentWindow: true, active: true}, function (tab) {
-		    	chrome.tabs.update(tab.id, {url: request.new_url});
-		    })
+			console.log("Background.js received message")
 
 		    sendResponse({status: "success"})
 		} catch (err) {
