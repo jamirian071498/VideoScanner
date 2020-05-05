@@ -5,8 +5,6 @@ chrome.runtime.onMessage.addListener(
 				sendResponse({status: "failure"})
 			}
 
-			console.log("Background.js received message")
-
 		    sendResponse({status: "success"})
 		} catch (err) {
 			sendResponse({status: "failure"})

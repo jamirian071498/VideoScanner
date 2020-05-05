@@ -1,9 +1,9 @@
 window._config = {
     api: {
-        invokeUrl: "https://cw0fwl82wi.execute-api.us-west-2.amazonaws.com/prod",
-        key: "kxgaVR02aA2HLH0obZumE3PeH9dWYI2Y9sgZQtx0"
+        invokeUrl: process.env.LAMBDA_INVOKE_URL,
+        key: process.env.LAMBDA_API_KEY
     },
     message: {
-    	key: "password"
+    	key: process.env.BACKGROUND_KEY
     }
 };

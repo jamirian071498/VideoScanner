@@ -1,6 +1,7 @@
 import $ from "jquery";
 import "regenerator-runtime/runtime.js";
 
+
 var current_url = null
 var toTheRight = null
 
@@ -13,34 +14,63 @@ embed(runEmbedded);
 
 var darkTheme = $("html").get(0).hasAttribute("dark")
 
-var header = document.createElement("h2");
-header.innerHTML = "Video Scanner:";
-header.style.marginTop = "5px"
-header.style.marginBottom = "8px"
+var logo = document.createElement("svg")
+logo.setAttribute("height", "2cm")
+logo.setAttribute("width", "2cm")
+logo.setAttribute("version", "1.1")
+logo.style.marginRight = "8px"
+logo.onclick = toggleVisibility
 
-var prevButton = document.createElement("BUTTON")
+var image = document.createElement("img")
+image.setAttribute("src", chrome.runtime.getURL("icons/icon_128.png"))
+image.setAttribute("alt", "YouTube Video Word Finder Icon")
+image.setAttribute("x", "0")
+image.setAttribute("y", "0")
+image.setAttribute("height", "30px")
+image.setAttribute("width", "30px")
+logo.append(image)
+
+var prevButton = document.createElement("button")
 prevButton.id = "vidscan-prev-button"
 prevButton.innerHTML = "<"
 prevButton.onclick = onLeftClick
 prevButton.style.marginLeft = "5px"
 prevButton.style.marginRight = "5px"
 
-var nextButton = document.createElement("BUTTON")
+var nextButton = document.createElement("button")
 nextButton.id = "vidscan-next-button"
 nextButton.innerHTML = ">"
 nextButton.onclick = onRightClick
 
-var searchInput = document.createElement("INPUT")
+var searchInput = document.createElement("input")
 searchInput.id = "vidscan-search-input"
+searchInput.setAttribute("placeholder", "Search")
+
+var notFoundMessage = document.createElement("span")
+notFoundMessage.id = "vidscan-not-found"
+notFoundMessage.innerText = "Query not found in captions"
+notFoundMessage.style.marginLeft = "8px"
 
 setColors()
 
-var newDiv = document.createElement("div");
-newDiv.setAttribute("id","vidscan");
-newDiv.appendChild(header);
-newDiv.appendChild(searchInput);
-newDiv.appendChild(prevButton);
-newDiv.appendChild(nextButton);
+var searchComponents = document.createElement("span")
+searchComponents.id = "vidScanSearchComponents"
+searchComponents.setAttribute("id","vidscan")
+searchComponents.setAttribute("style", "display:table-cell;vertical-align:middle;")
+searchComponents.appendChild(logo)
+searchComponents.appendChild(searchInput)
+searchComponents.appendChild(prevButton)
+searchComponents.appendChild(nextButton)
+searchComponents.appendChild(notFoundMessage)
+$(searchComponents).hide()
+
+var logoSpan = document.createElement("span")
+logoSpan.appendChild(logo)
+
+var videoScannerDiv = document.createElement("div")
+videoScannerDiv.setAttribute("style", "display:table;")
+videoScannerDiv.appendChild(logoSpan)
+videoScannerDiv.appendChild(searchComponents)
 
 var primaryInner = null;
 
@@ -48,17 +78,20 @@ window.addEventListener("message", function(event) {
 	if (event.source != window)
 		return;
 
-	if ("current_time" in event.data) {
-		console.log("Extension received: " + event.data.current_time)
+	if (event.data.hasOwnProperty("current_time")) {
 		let next_time = seekNext(event.data.current_time)
 		window.postMessage({time: next_time}, "*");
 	}
 }, false);
 
 
-function setColors() {
-	header.style.color = darkTheme ? "white" : "black";
+function toggleVisibility() {
+	$(searchComponents).toggle()
+	$("#vidscan-not-found").hide()
+}
 
+
+function setColors() {
 	prevButton.style.color = darkTheme ? "white" : "#909090";
 	prevButton.style.background = darkTheme ? "#303030" : "white";
 	prevButton.style.border = "none"
@@ -70,27 +103,28 @@ function setColors() {
 	searchInput.style.color = darkTheme ? "white" : "#909090";
 	searchInput.style.background = darkTheme ? "black" : "white";
 	searchInput.style.border = "#303030";
+
+	notFoundMessage.style.color = darkTheme ? "white" : "black";
 }
 
 
 function completeRequest(results) {
 	if (!results.length) {
-		console.log('no captions');
-		console.log('\n');
 		return;
 	}
 
-	logTimestamps(results)
+	// logTimestamps(results)
 	state.times = results.map(Math.floor)
 }
 
 function logTimestamps(results) {
 	results.forEach(time => {
 		time = secondsToTimestamp(time)
-		console.log(time)
 	})
+}
 
-	console.log('\n')
+function showPopup() {
+	$("#vidscan-not-found").show().delay(1000).fadeOut()
 }
 
 function secondsToTimestamp(seconds) {
@@ -252,22 +286,19 @@ async function getCaptionData() {
 
 		let results = await response.json()
 
-		if (!results.length) {
-			console.log('no captions');
-			console.log('\n');
+		if (results.no_captions || !results.length) {
+			showPopup()
 			return
 		}
 
-		logTimestamps(results)
+		// logTimestamps(results)
 		state.times = results.map(Math.floor)
 	} catch (err) {
-		console.log("An exception occured in getCaptionData: " + err)
 	}
 }
 
 function saveState() {
-	chrome.storage.sync.set({"currentState": state});
-    console.log(state)
+	chrome.storage.sync.set({"currentState": state})
 }
 
 function runEmbedded() {
@@ -275,12 +306,10 @@ function runEmbedded() {
 		if (event.source != window)
 			return;
 
-		if ("time" in event.data) {
-			console.log("Webpage received: " + event.data.time)
+		if (event.data.hasOwnProperty("time")) {
 			let player = document.getElementById('movie_player')
 			player.seekTo(event.data.time)
-		} else if ("get_current" in event.data) {
-			console.log("Webpage received: " + event.data.get_current)
+		} else if (event.data.hasOwnProperty("get_current")) {
 			let player = document.getElementById('movie_player')
 			window.postMessage({current_time: player.getCurrentTime()}, "*");
 		}
@@ -317,18 +346,15 @@ function main() {
 	current_url = new URL(document.URL)
 
 	chrome.storage.sync.get("currentState", function(result) {
-		if (typeof result.currentState === typeof undefined || 
-			typeof result.currentState.currentInputVal === typeof undefined) {
-			console.log("No state found in storage")
-		} else {
+		if (typeof result.currentState !== typeof undefined && 
+			typeof result.currentState.currentInputVal !== typeof undefined) {
 			state = result.currentState
 			searchInput.value = state.currentInputVal
-			console.log(state)
 		}
     });
 
-	primaryInner = document.getElementById("info");
-	primaryInner.appendChild(newDiv);
+	primaryInner = $("div#container.style-scope.ytd-video-primary-info-renderer")
+	primaryInner.append(videoScannerDiv)
 }
 
 $(document).ready(function() {
@@ -338,14 +364,13 @@ $(document).ready(function() {
     function checkForProfileImageRender() {
     	count++;
 
-        if ($("*").length > 1500) {
+        if ($("div#info.style-scope.ytd-video-primary-info-renderer").length > 0) { // Total elements ~ 4392
             clearInterval(profileImageRenderTimer);
             main();
         }
 
-        if (count === 20) {
+        if (count === 50) {
         	clearInterval(profileImageRenderTimer);
-        	console.log("VidScanner: YouTube webpage took more than 2 seconds to load");
         }
      }
 });

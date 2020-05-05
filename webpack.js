@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const baseManifest = require("./chrome/manifest.json");
 const WebpackExtensionManifestPlugin = require("webpack-extension-manifest-plugin");
+const Dotenv = require("dotenv-webpack")
 const config = {
   mode: "development",
   devtool: "cheap-module-source-map",
@@ -42,7 +43,8 @@ const config = {
       config: {
         base: baseManifest
       }
-    })
+    }),
+    new Dotenv()
   ],
   module: {
     rules: [
