@@ -1,0 +1,34 @@
+.vidscan-loader-d {
+    box-sizing: border-box;
+    display: inline-block;
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: 2px;
+    border: 2px solid #AAAAAA;
+    border-radius: 50%;
+    animation: lds-ring 1.2s cubic-bezier(0.5, 0.5, 0.5, 0.5) infinite;
+    border-color: #AAA #AAA #AAA transparent;
+}
+
+.vidscan-loader {
+    box-sizing: border-box;
+    display: inline-block;
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: 2px;
+    border: 2px solid #606060;
+    border-radius: 50%;
+    animation: lds-ring 1.2s cubic-bezier(0.5, 0.5, 0.5, 0.5) infinite;
+    border-color: #666 #666 #666 transparent;
+}
+
+@keyframes lds-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

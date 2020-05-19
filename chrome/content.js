@@ -1,12 +1,12 @@
 import $ from "jquery";
 import "regenerator-runtime/runtime.js";
 
-
 var current_url = null
 var toTheRight = null
 
 var state = {
 	times: [],
+	currentOccurrence: 1,
 	currentInputVal: ""
 }
 
@@ -23,7 +23,7 @@ logo.onclick = toggleVisibility
 
 var image = document.createElement("img")
 image.setAttribute("src", chrome.runtime.getURL("icons/icon_128.png"))
-image.setAttribute("alt", "YouTube Video Word Finder Icon")
+image.setAttribute("alt", "Word Finder for YouTube™ Videos Icon")
 image.setAttribute("x", "0")
 image.setAttribute("y", "0")
 image.setAttribute("height", "30px")
@@ -51,6 +51,14 @@ notFoundMessage.id = "vidscan-not-found"
 notFoundMessage.innerText = "Query not found in captions"
 notFoundMessage.style.marginLeft = "8px"
 
+var occurrences = document.createElement("span")
+occurrences.style.marginLeft = "5px"
+$(occurrences).hide()
+
+var loadSpinner = document.createElement("span")
+loadSpinner.style.marginLeft = "8px"
+$(loadSpinner).hide()
+
 setColors()
 
 var searchComponents = document.createElement("span")
@@ -59,8 +67,10 @@ searchComponents.setAttribute("id","vidscan")
 searchComponents.setAttribute("style", "display:table-cell;vertical-align:middle;")
 searchComponents.appendChild(logo)
 searchComponents.appendChild(searchInput)
+searchComponents.appendChild(occurrences)
 searchComponents.appendChild(prevButton)
 searchComponents.appendChild(nextButton)
+searchComponents.appendChild(loadSpinner)
 searchComponents.appendChild(notFoundMessage)
 $(searchComponents).hide()
 
@@ -79,8 +89,10 @@ window.addEventListener("message", function(event) {
 		return;
 
 	if (event.data.hasOwnProperty("current_time")) {
-		let next_time = seekNext(event.data.current_time)
-		window.postMessage({time: next_time}, "*");
+		let next_index = seekNext(event.data.current_time)
+		window.postMessage({time: state.times[next_index]}, "*");
+		state.currentOccurrence = next_index+1
+		setOccurrencesText()
 	}
 }, false);
 
@@ -104,7 +116,9 @@ function setColors() {
 	searchInput.style.background = darkTheme ? "black" : "white";
 	searchInput.style.border = "#303030";
 
-	notFoundMessage.style.color = darkTheme ? "white" : "black";
+	notFoundMessage.style.color = darkTheme ? "#AAAAAA" : "#606060";
+	occurrences.style.color = darkTheme ? "#AAAAAA" : "#606060";
+	darkTheme ? loadSpinner.setAttribute("class", "vidscan-loader-d") : loadSpinner.setAttribute("class", "vidscan-loader")
 }
 
 
@@ -150,10 +164,12 @@ async function onSearch() {
 	if (newInputVal === "") {
 		clearState()
 		saveState()
+		setOccurrencesText()
 		return
 	}
 
 	if (state.currentInputVal !== newInputVal || state.times.length === 0) {
+		$(loadSpinner).show()
 		clearState()
 		state.currentInputVal = newInputVal;
 		await getCaptionData()
@@ -161,10 +177,23 @@ async function onSearch() {
 	}
 
 	if (state.times.length === 0) {
+		$(loadSpinner).hide()
+		setOccurrencesText()
 		return;
 	}
 
 	window.postMessage({get_current: "gimme current time"})
+	$(loadSpinner).hide()
+}
+
+function setOccurrencesText() {
+	if (state.times.length === 0) {
+		$(occurrences).hide()
+		return
+	}
+
+	occurrences.innerText = state.currentOccurrence + "/" + state.times.length
+	$(occurrences).show()
 }
 
 function timestampToSeconds(time) {
@@ -183,44 +212,44 @@ function timestampToSeconds(time) {
 function seekNext(current) {
 	let length = state.times.length
 
-    if (length === 1) return state.times[0]
+    if (length === 1) return 0
     
     if (length === 2) {
     	if ((toTheRight && (current >= state.times[0] && current < state.times[1])) || 
     		(!toTheRight && (current < state.times[0] + 2 || current >= state.times[1] + 2))) {
-            return state.times[1]
+            return 1
         } else {
-            return state.times[0]
+            return 0
         }
     }
         
     if (current >= state.times[length - 1]) {
     	if (toTheRight) {
-    		return state.times[0]
+    		return 0
     	} else {
         	if (current >= state.times[length - 1] + 2) {
-                return state.times[length - 1]
+                return length - 1
         	} else {
-        		return state.times[length - 2]
+        		return length - 2
         	}
         }
     }
 
     if (toTheRight) {
     	if (current < state.times[0]) {
-    		return state.times[0]
+    		return 0
     	}
     } else {
     	if (current < state.times[0] + 2) {
-    		return state.times[length - 1]
+    		return length - 1
     	}
     }
         
     if (toTheRight) {
-        return state.times[bSearchRight(current, 0, length)]
+        return bSearchRight(current, 0, length)
     }
     
-    return state.times[bSearchLeft(current, 0, length)]
+    return bSearchLeft(current, 0, length)
 }
 
 function bSearchRight(current, left, right) {
@@ -267,6 +296,7 @@ function onRightClick() {
 
 function clearState() {
 	state.currentInputVal = ""
+	state.currentOccurrence = 1
 	state.times = []
 }
 
@@ -352,6 +382,8 @@ function main() {
 			searchInput.value = state.currentInputVal
 		}
     });
+
+    $("head").append("<link rel='stylesheet' href='css/vidscan-style.css'>")
 
 	primaryInner = $("div#container.style-scope.ytd-video-primary-info-renderer")
 	primaryInner.append(videoScannerDiv)

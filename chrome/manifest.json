@@ -1,8 +1,8 @@
 {
-	"name": "Control+F for YouTube™ Videos",
+	"name": "Word Finder for YouTube™ Videos",
 	"short_name": "YouTube™ Control+F",
-	"version": "1.0.0",
-	"description": "Search through YouTube videos for keywords",
+	"version": "1.0.1",
+	"description": "Search through YouTube videos for keywords.",
 	"manifest_version": 2,
 	"icons": {
 	    "128": "icons/icon_128.png",
@@ -13,6 +13,7 @@
 		{
 			"matches": ["*://*.youtube.com/*"],
 			"js": ["content.js", "config.js"],
+			"css": ["css/vidscan-style.css"],
       		"run_at": "document_end"
 		}
 	],

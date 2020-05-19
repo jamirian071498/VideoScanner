@@ -37,6 +37,10 @@ const config = {
       {
         from: "chrome/icons",
         to: "icons"
+      },
+      {
+        from: "chrome/css",
+        to: "css"
       }
     ]),
     new WebpackExtensionManifestPlugin({
