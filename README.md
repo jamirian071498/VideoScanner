@@ -1,4 +1,4 @@
-# Word Finder for Youtube Videos (Google Chrome Extension)
+# Word Finder for Youtube™ Videos (Google Chrome Extension)
 Search through YouTube videos for keywords.
 
 ** ONLY FOR VIDEOS WITH CAPTIONS **
