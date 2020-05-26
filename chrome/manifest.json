@@ -1,7 +1,7 @@
 {
 	"name": "Word Finder for YouTube™ Videos",
 	"short_name": "YouTube™ Control+F",
-	"version": "1.0.1",
+	"version": "1.1.2",
 	"description": "Search through YouTube videos for keywords.",
 	"manifest_version": 2,
 	"icons": {

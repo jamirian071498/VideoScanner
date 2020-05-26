@@ -35,7 +35,7 @@ prevButton.id = "vidscan-prev-button"
 prevButton.innerHTML = "<"
 prevButton.onclick = onLeftClick
 prevButton.style.marginLeft = "5px"
-prevButton.style.marginRight = "5px"
+prevButton.style.marginRight = "4px"
 
 var nextButton = document.createElement("button")
 nextButton.id = "vidscan-next-button"
@@ -46,13 +46,21 @@ var searchInput = document.createElement("input")
 searchInput.id = "vidscan-search-input"
 searchInput.setAttribute("placeholder", "Search")
 
+$(searchInput).keypress(function(event) {
+    if (event.keyCode === 13 && event.shiftKey) {
+        $(prevButton).click()
+    } else if (event.keyCode === 13) {
+    	$(nextButton).click()
+    }
+})
+
 var notFoundMessage = document.createElement("span")
 notFoundMessage.id = "vidscan-not-found"
 notFoundMessage.innerText = "Query not found in captions"
 notFoundMessage.style.marginLeft = "8px"
 
 var occurrences = document.createElement("span")
-occurrences.style.marginLeft = "5px"
+occurrences.style.marginLeft = "7px"
 $(occurrences).hide()
 
 var loadSpinner = document.createElement("span")
@@ -67,9 +75,9 @@ searchComponents.setAttribute("id","vidscan")
 searchComponents.setAttribute("style", "display:table-cell;vertical-align:middle;")
 searchComponents.appendChild(logo)
 searchComponents.appendChild(searchInput)
-searchComponents.appendChild(occurrences)
 searchComponents.appendChild(prevButton)
 searchComponents.appendChild(nextButton)
+searchComponents.appendChild(occurrences)
 searchComponents.appendChild(loadSpinner)
 searchComponents.appendChild(notFoundMessage)
 $(searchComponents).hide()
@@ -285,11 +293,13 @@ function bSearchLeft(current, left, right) {
 }
 
 function onLeftClick() {
+	console.log("left clicked")
 	toTheRight = false
 	onSearch()
 }
 
 function onRightClick() {
+	console.log("right clicked")
 	toTheRight = true
 	onSearch()
 }
