@@ -1,109 +1,128 @@
 import $ from "jquery";
 import "regenerator-runtime/runtime.js";
 
-var current_url = null
-var toTheRight = null
 
-var state = {
-	times: [],
-	currentOccurrence: 1,
-	currentInputVal: ""
-}
+var current_url;
+var toTheRight;
+var state;
+var darkTheme
+var image
+var prevButton
+var nextButton
+var searchInput
+var notFoundMessage
+var occurrences
+var loadSpinner
+var searchComponents
+var logo
+var logoSpan
+var videoScannerDiv
+var primaryInner
 
-embed(runEmbedded);
+function initializeGlobals(url) {
+	current_url = new URL(document.URL)
+	toTheRight = null
 
-var darkTheme = $("html").get(0).hasAttribute("dark")
-
-var logo = document.createElement("svg")
-logo.setAttribute("height", "2cm")
-logo.setAttribute("width", "2cm")
-logo.setAttribute("version", "1.1")
-logo.style.marginRight = "8px"
-logo.onclick = toggleVisibility
-
-var image = document.createElement("img")
-image.setAttribute("src", chrome.runtime.getURL("icons/icon_128.png"))
-image.setAttribute("alt", "Word Finder for YouTube™ Videos Icon")
-image.setAttribute("x", "0")
-image.setAttribute("y", "0")
-image.setAttribute("height", "30px")
-image.setAttribute("width", "30px")
-logo.append(image)
-
-var prevButton = document.createElement("button")
-prevButton.id = "vidscan-prev-button"
-prevButton.innerHTML = "<"
-prevButton.onclick = onLeftClick
-prevButton.style.marginLeft = "5px"
-prevButton.style.marginRight = "4px"
-
-var nextButton = document.createElement("button")
-nextButton.id = "vidscan-next-button"
-nextButton.innerHTML = ">"
-nextButton.onclick = onRightClick
-
-var searchInput = document.createElement("input")
-searchInput.id = "vidscan-search-input"
-searchInput.setAttribute("placeholder", "Search")
-
-$(searchInput).keypress(function(event) {
-    if (event.keyCode === 13 && event.shiftKey) {
-        $(prevButton).click()
-    } else if (event.keyCode === 13) {
-    	$(nextButton).click()
-    }
-})
-
-var notFoundMessage = document.createElement("span")
-notFoundMessage.id = "vidscan-not-found"
-notFoundMessage.innerText = "Query not found in captions"
-notFoundMessage.style.marginLeft = "8px"
-
-var occurrences = document.createElement("span")
-occurrences.style.marginLeft = "7px"
-$(occurrences).hide()
-
-var loadSpinner = document.createElement("span")
-loadSpinner.style.marginLeft = "8px"
-$(loadSpinner).hide()
-
-setColors()
-
-var searchComponents = document.createElement("span")
-searchComponents.id = "vidScanSearchComponents"
-searchComponents.setAttribute("id","vidscan")
-searchComponents.setAttribute("style", "display:table-cell;vertical-align:middle;")
-searchComponents.appendChild(logo)
-searchComponents.appendChild(searchInput)
-searchComponents.appendChild(prevButton)
-searchComponents.appendChild(nextButton)
-searchComponents.appendChild(occurrences)
-searchComponents.appendChild(loadSpinner)
-searchComponents.appendChild(notFoundMessage)
-$(searchComponents).hide()
-
-var logoSpan = document.createElement("span")
-logoSpan.appendChild(logo)
-
-var videoScannerDiv = document.createElement("div")
-videoScannerDiv.setAttribute("style", "display:table;")
-videoScannerDiv.appendChild(logoSpan)
-videoScannerDiv.appendChild(searchComponents)
-
-var primaryInner = null;
-
-window.addEventListener("message", function(event) {
-	if (event.source != window)
-		return;
-
-	if (event.data.hasOwnProperty("current_time")) {
-		let next_index = seekNext(event.data.current_time)
-		window.postMessage({time: state.times[next_index]}, "*");
-		state.currentOccurrence = next_index+1
-		setOccurrencesText()
+	state = {
+		times: [],
+		currentOccurrence: 1,
+		currentInputVal: ""
 	}
-}, false);
 
+	embed(runEmbedded);
+
+	darkTheme = $("html").get(0).hasAttribute("dark")
+
+	logo = document.createElement("svg")
+	logo.setAttribute("height", "2cm")
+	logo.setAttribute("width", "2cm")
+	logo.setAttribute("version", "1.1")
+	logo.style.marginRight = "8px"
+	logo.onclick = toggleVisibility
+
+	image = document.createElement("img")
+	image.setAttribute("src", chrome.runtime.getURL("icons/icon_128.png"))
+	image.setAttribute("alt", "Word Finder for YouTube™ Videos Icon")
+	image.setAttribute("x", "0")
+	image.setAttribute("y", "0")
+	image.setAttribute("height", "30px")
+	image.setAttribute("width", "30px")
+	logo.append(image)
+
+	prevButton = document.createElement("button")
+	prevButton.id = "vidscan-prev-button"
+	prevButton.innerHTML = "<"
+	prevButton.onclick = onLeftClick
+	prevButton.style.marginLeft = "5px"
+	prevButton.style.marginRight = "4px"
+
+	nextButton = document.createElement("button")
+	nextButton.id = "vidscan-next-button"
+	nextButton.innerHTML = ">"
+	nextButton.onclick = onRightClick
+
+	searchInput = document.createElement("input")
+	searchInput.id = "vidscan-search-input"
+	searchInput.setAttribute("placeholder", "Search")
+
+	$(searchInput).keypress(function(event) {
+	    if (event.keyCode === 13 && event.shiftKey) {
+	        onLeftClick()
+	    } else if (event.keyCode === 13) {
+	    	onRightClick()
+	    }
+	})
+
+	notFoundMessage = document.createElement("span")
+	notFoundMessage.id = "vidscan-not-found"
+	notFoundMessage.innerText = "Query not found in captions"
+	notFoundMessage.style.marginLeft = "8px"
+
+	occurrences = document.createElement("span")
+	occurrences.style.marginLeft = "7px"
+	$(occurrences).hide()
+
+	loadSpinner = document.createElement("span")
+	loadSpinner.style.marginLeft = "8px"
+	$(loadSpinner).hide()
+
+	setColors()
+
+	searchComponents = document.createElement("span")
+	searchComponents.id = "vidScanSearchComponents"
+	searchComponents.setAttribute("id","vidscan")
+	searchComponents.setAttribute("style", "display:table-cell;vertical-align:middle;")
+	searchComponents.appendChild(logo)
+	searchComponents.appendChild(searchInput)
+	searchComponents.appendChild(prevButton)
+	searchComponents.appendChild(nextButton)
+	searchComponents.appendChild(occurrences)
+	searchComponents.appendChild(loadSpinner)
+	searchComponents.appendChild(notFoundMessage)
+	$(searchComponents).hide()
+
+	logoSpan = document.createElement("span")
+	logoSpan.appendChild(logo)
+
+	videoScannerDiv = document.createElement("div")
+	videoScannerDiv.setAttribute("style", "display:table;")
+	videoScannerDiv.appendChild(logoSpan)
+	videoScannerDiv.appendChild(searchComponents)
+
+	primaryInner = null;
+
+	window.addEventListener("message", function(event) {
+		if (event.source != window)
+			return;
+
+		if (event.data.hasOwnProperty("current_time")) {
+			let next_index = seekNext(event.data.current_time)
+			window.postMessage({time: state.times[next_index]}, "*");
+			state.currentOccurrence = next_index+1
+			setOccurrencesText()
+		}
+	}, false);
+}
 
 function toggleVisibility() {
 	$(searchComponents).toggle()
@@ -166,7 +185,6 @@ function secondsToTimestamp(seconds) {
 }
 
 async function onSearch() {
-	current_url = new URL(document.URL)
 	let newInputVal = searchInput.value
 
 	if (newInputVal === "") {
@@ -293,13 +311,11 @@ function bSearchLeft(current, left, right) {
 }
 
 function onLeftClick() {
-	console.log("left clicked")
 	toTheRight = false
 	onSearch()
 }
 
 function onRightClick() {
-	console.log("right clicked")
 	toTheRight = true
 	onSearch()
 }
@@ -363,6 +379,8 @@ function embed(fn) {
 }
 
 function main() {
+	initializeGlobals()
+
 	$("body").on('DOMSubtreeModified', "ytd-popup-container", function() {
 		let toggle = $("ytd-popup-container").find("paper-toggle-button")
 
@@ -383,8 +401,6 @@ function main() {
 		}
 	});
 
-	current_url = new URL(document.URL)
-
 	chrome.storage.sync.get("currentState", function(result) {
 		if (typeof result.currentState !== typeof undefined && 
 			typeof result.currentState.currentInputVal !== typeof undefined) {
@@ -400,13 +416,13 @@ function main() {
 }
 
 $(document).ready(function() {
-	let profileImageRenderTimer = setInterval(checkForProfileImageRender, 100);
+	let profileImageRenderTimer = setInterval(checkForProfileImageRender, 500);
 	let count = 0;
 
     function checkForProfileImageRender() {
     	count++;
 
-        if ($("div#info.style-scope.ytd-video-primary-info-renderer").length > 0) { // Total elements ~ 4392
+        if ($("div#info.style-scope.ytd-video-primary-info-renderer").length > 0) {
             clearInterval(profileImageRenderTimer);
             main();
         }
@@ -415,4 +431,4 @@ $(document).ready(function() {
         	clearInterval(profileImageRenderTimer);
         }
      }
-});
+})
